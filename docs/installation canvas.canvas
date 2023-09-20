@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"4b2367f5dca06891","x":-460,"y":-300,"width":250,"height":160,"type":"text","text":"This is the windows installation guide for adl2, here we'll get everything ready to start downloading playlists"},
+		{"id":"5e334e283b1a73c2","x":-460,"y":-43,"width":250,"height":103,"type":"text","text":"First we need python 3.11, though most versions after 3.0 might work"},
+		{"id":"06a7519b21232279","x":-460,"y":149,"width":250,"height":91,"type":"text","text":"Now we need to install the python libraries that are needed"},
+		{"id":"0fae8ccba136f264","x":-460,"y":311,"width":250,"height":149,"type":"text","text":"Next up is installing ffmpeg, which is needed for the audio extraction part of the download process"},
+		{"id":"a96f442bb067d340","x":-460,"y":543,"width":250,"height":60,"type":"text","text":"And then we finish off by downloading adl2"}
+	],
+	"edges":[
+		{"id":"d01a7c8dce4f5d31","fromNode":"4b2367f5dca06891","fromSide":"bottom","toNode":"5e334e283b1a73c2","toSide":"top"},
+		{"id":"7be5eb003a047c97","fromNode":"5e334e283b1a73c2","fromSide":"bottom","toNode":"06a7519b21232279","toSide":"top"},
+		{"id":"ee84ff921237aed3","fromNode":"06a7519b21232279","fromSide":"bottom","toNode":"0fae8ccba136f264","toSide":"top"},
+		{"id":"f67a41800111fb3f","fromNode":"0fae8ccba136f264","fromSide":"bottom","toNode":"a96f442bb067d340","toSide":"top"}
+	]
+}

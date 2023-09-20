@@ -1,0 +1,268 @@
+{
+  "main": {
+    "id": "947c6e6a7241eafb",
+    "type": "split",
+    "children": [
+      {
+        "id": "923283e6d27ea048",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3cc0444cb1ead6c7",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {}
+            }
+          },
+          {
+            "id": "b66a04dbcb6847af",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Getting Started.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "0a4730d0b3f25336",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "installation canvas.canvas",
+                "viewState": {
+                  "x": 49,
+                  "y": 125,
+                  "zoom": 0
+                }
+              }
+            }
+          },
+          {
+            "id": "9dcaa1e0a7d65daa",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "usage canvas.canvas",
+                "viewState": {
+                  "x": 497.3787277804631,
+                  "y": 184.30871236161738,
+                  "zoom": -0.6666666666666667
+                }
+              }
+            }
+          },
+          {
+            "id": "6428b1cb47f56c05",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "adl2.py.md",
+                "mode": "preview",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "d0f738215652e40d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "adl2.py internals.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5033524ecfe1bced",
+    "type": "split",
+    "children": [
+      {
+        "id": "1b46e8aa59d75451",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3011120472892fa5",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "2b8a157a1c54426b",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "7630c8f05a83a166",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "52b9f9d0939d00f4",
+    "type": "split",
+    "children": [
+      {
+        "id": "e68d3ddcab648920",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "db11839605fb4d8f",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "usage canvas.canvas",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "d77355faae744802",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "usage canvas.canvas",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "bc96c2344261e9a2",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "9b82deceaae5ec90",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "usage canvas.canvas"
+              }
+            }
+          },
+          {
+            "id": "3e6263986e84c398",
+            "type": "leaf",
+            "state": {
+              "type": "advanced-tables-toolbar",
+              "state": {}
+            }
+          },
+          {
+            "id": "d2c93c52094fc072",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency"
+              }
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "table-editor-obsidian:Advanced Tables Toolbar": false,
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "9dcaa1e0a7d65daa",
+  "lastOpenFiles": [
+    "adl2.py.md",
+    "adl2.py internals.md",
+    "usage canvas.canvas",
+    "installation canvas.canvas",
+    "core/type.py.md",
+    "Getting Started.md",
+    "core/dl.py.md",
+    "Images/updating playlists/fire in the hole.png",
+    "Images/updating playlists/add the -u.png",
+    "Images/updating playlists",
+    "Images/New folder",
+    "Images/adding playlists/output of the operation.png",
+    "Images/adding playlists/paste the id.png",
+    "Images/adding playlists/copy the ID.png",
+    "Images/adding playlists",
+    "Images/basic usage",
+    "Images/basic usage/get your playlist path.png",
+    "Images/basic usage/tell it what to run.png",
+    "Images/basic usage/paste the path in with right click.png",
+    "Images/basic usage/start with python.png",
+    "Images/basic usage/paste and navigate using cd.png",
+    "Images",
+    "New folder",
+    "New shortcut.lnk",
+    "Untitled 1.canvas",
+    "adl2.py update.md",
+    "core.md",
+    "core/tagging.py.md",
+    "core/DescriptionParser.py.md",
+    "core/db.py.md",
+    "core/config.py.md",
+    "adl2 internals.md",
+    "core"
+  ]
+}
