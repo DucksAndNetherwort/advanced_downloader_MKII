@@ -62,7 +62,7 @@ def trackProgressHook(progressBar, progress):
 			if currentRateLimit < 4:
 				currentRateLimit = 4
 
-def update(connection: sqlite3.Connection, playlistDirectory: Path):
+def update(connection: sqlite3.Connection, playlistDirectory: Path, ffmpegPath: str = None):
 	log = logging.getLogger('update')
 	log.info(f'updating playlist at {playlistDirectory}')
 	bruh = logging.getLogger('yt-dlp').setLevel(logging.WARNING)
@@ -154,7 +154,7 @@ def update(connection: sqlite3.Connection, playlistDirectory: Path):
 			while not success:
 				with tqdm.tqdm(unit="B", unit_scale=True, leave=False, desc=filenameTitle, total=filesizeEstimate) as trackBar:
 					progressHook = [lambda data: trackProgressHook(trackBar, data)]
-					success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == '0' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
+					success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == '0' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook, ffmpegPath) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
 
 				if rateLimited:
 					log.debug(f"got rate limited, after delay the new target will be {currentRateLimit}M")
@@ -187,7 +187,7 @@ def update(connection: sqlite3.Connection, playlistDirectory: Path):
 
 def main():
 	cliArgs = True #true to get arguments from the command line, false for hardcoded args in fakeArgs
-	fakeArgs = "--loglevel=DEBUG -p C:\\Users\\kyren\\Music\\DucksMix\\playlist.db -u".split()
+	fakeArgs = "--loglevel=DEBUG -p C:\\Users\\\\Music\\DucksMix\\playlist.db -u".split()
 
 	parser.add_argument('-p', '--playlist', type=db.checkdbPath, required=True, help='path to local playlist folder/database file')
 	parser.add_argument('-u', '--update', action='store_true', help='update the local playlist')
@@ -195,6 +195,7 @@ def main():
 	parser.add_argument('--setconfig', action='append', nargs=2, help="first argument is the configuration option key, second is the new value")
 	parser.add_argument('--removeconfig', action='append', help="remove a key from configuration, or use 'all' to clear all configuration")
 	parser.add_argument('--showconfig', action='append', help="show the value of a configuration key, or 'all' to show the values of all config options in database")
+	parser.add_argument('--ffmpeglocation', default='ffmpeg/ffmpeg.exe', help='specify a specific path to find ffmpeg') #will have to be tweaked for linux
 	parser.add_argument('--loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='logging level, defaults to INFO')
 
 	args = parser.parse_args() if cliArgs else parser.parse_args(fakeArgs)
@@ -251,7 +252,7 @@ def main():
 					log.info('config printed')
 		
 		if(args.update):
-			update(dbConn, args.playlist.parent)
+			update(dbConn, args.playlist.parent, args.ffmpeglocation)
 
 if(__name__ == "__main__"):
 	main()

@@ -24,7 +24,7 @@ def connect(path: str) -> sqlite3.Connection:
 	connection = None
 	try:
 		connection = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
-		log.debug("Connection to SQLite DB successful")
+		log.debug(f"Connection to SQLite DB at {str(path)} successful")
 	except Error as e:
 		log.debug(f"The error '{e}' occurred")
 

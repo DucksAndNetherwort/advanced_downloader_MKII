@@ -118,7 +118,7 @@ def getDescription(id: str, rateLimit: str = '3M') -> tuple[str, str, str, int]:
 
 	return uploader, video_title, video_description, approximateFilesize
 
-def getTrack(id: str, metadata: metadata_t, useMetadataTitle: bool, outputDir: Path, filenameTitle: str, rateLimit: str = '3M', progressHooks: list = []) -> bool:
+def getTrack(id: str, metadata: metadata_t, useMetadataTitle: bool, outputDir: Path, filenameTitle: str, rateLimit: str = '3M', progressHooks: list = [], ffmpegPath: str = None) -> bool:
 	"""
 	Downloads a track as mp3 with a filename of {filenameTitle}.mp3 to the directory of outputDir
 	"""
@@ -130,6 +130,7 @@ def getTrack(id: str, metadata: metadata_t, useMetadataTitle: bool, outputDir: P
 		filenameTitle = filenameCleaner(filenameTitle)
 		#log.debug(f"output path: {outputPathString}")
 		ydl_opts = {
+			'ffmpeg_location': ffmpegPath,
 			'extract_flat': 'discard_in_playlist',
 			'final_ext': 'mp3',
 			'format': 'bestaudio/best',
