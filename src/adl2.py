@@ -7,6 +7,7 @@ import sqlite3
 import tqdm
 from yt_dlp.utils import format_bytes
 from time import sleep #I hate that I have to do this
+import platform
 
 from core import DescriptionParser, dl, db, config
 from core.type import parserInput_t, metadata_t
@@ -195,7 +196,7 @@ def main():
 	parser.add_argument('--setconfig', action='append', nargs=2, help="first argument is the configuration option key, second is the new value")
 	parser.add_argument('--removeconfig', action='append', help="remove a key from configuration, or use 'all' to clear all configuration")
 	parser.add_argument('--showconfig', action='append', help="show the value of a configuration key, or 'all' to show the values of all config options in database")
-	parser.add_argument('--ffmpeglocation', default='ffmpeg/ffmpeg.exe', help='specify a specific path to find ffmpeg') #will have to be tweaked for linux
+	parser.add_argument('--ffmpeglocation', default=('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None), help='specify a specific path to find ffmpeg') #might have to be tweaked for linux
 	parser.add_argument('--loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='logging level, defaults to INFO')
 
 	args = parser.parse_args() if cliArgs else parser.parse_args(fakeArgs)
@@ -203,6 +204,7 @@ def main():
 	logging.basicConfig(level=args.loglevel) #set up logging
 	log = logging.getLogger("Main")
 	log.debug('parsed args and started logger')
+	log.debug(f'ffmpeg path is {args.ffmpeglocation}')
 
 	with connectDB(args.playlist) as dbConn:
 

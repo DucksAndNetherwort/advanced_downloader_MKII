@@ -1,0 +1,2 @@
+If you're on windows, download https://github.com/GyanD/codexffmpeg/releases/download/6.0/ffmpeg-6.0-essentials_build.zip and extract bin/ffmpeg.exe here.
+Otherwise, just install ffmpeg with your preferred package manager.
