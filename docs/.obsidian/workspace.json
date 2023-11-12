@@ -16,14 +16,17 @@
             }
           },
           {
-            "id": "b66a04dbcb6847af",
+            "id": "4d5161771134b0a9",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "canvas",
               "state": {
-                "file": "Getting Started.md",
-                "mode": "source",
-                "source": false
+                "file": "usage canvas.canvas",
+                "viewState": {
+                  "x": 553.1196327931086,
+                  "y": 231.30538299469913,
+                  "zoom": -0.6666666666666665
+                }
               }
             }
           },
@@ -38,21 +41,6 @@
                   "x": 49,
                   "y": 125,
                   "zoom": 0
-                }
-              }
-            }
-          },
-          {
-            "id": "9dcaa1e0a7d65daa",
-            "type": "leaf",
-            "state": {
-              "type": "canvas",
-              "state": {
-                "file": "usage canvas.canvas",
-                "viewState": {
-                  "x": 550.3676272102957,
-                  "y": 156.51196367862624,
-                  "zoom": -0.6666666666666667
                 }
               }
             }
@@ -82,7 +70,7 @@
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -229,40 +217,44 @@
       "table-editor-obsidian:Advanced Tables Toolbar": false
     }
   },
-  "active": "9dcaa1e0a7d65daa",
+  "active": "4d5161771134b0a9",
   "lastOpenFiles": [
-    "adl2.py.md",
-    "adl2.py internals.md",
+    "Images/build usage/adding playlists/add a playlist.png",
+    "Images/build usage/adding playlists",
+    "Images/build usage/New folder",
+    "Images/build usage/add a playlist.png",
+    "Images/build usage/basic usage/tell it where the playlist is.png",
+    "Images/build usage/tell it where the playlist is.png",
+    "Images/build usage/basic usage/just type adl2.png",
+    "Images/build usage/just type adl2.png",
+    "Images/build usage/basic usage/paste it in with right click.png",
     "usage canvas.canvas",
     "installation canvas.canvas",
-    "core/type.py.md",
-    "Getting Started.md",
-    "core/dl.py.md",
-    "Images/updating playlists/fire in the hole.png",
-    "Images/updating playlists/add the -u.png",
-    "Images/updating playlists",
+    "core/db.py.md",
+    "Images/build usage/basic usage/copy the path.png",
+    "Images/build usage/paste it in with right click.png",
+    "Images/build usage/copy the path.png",
+    "adl2.py.md",
+    "Images/build usage/basic usage/win+r cmd enter.png",
+    "usage from source canvas.canvas",
+    "Images/build usage/basic usage",
+    "Images/build usage",
     "Images/New folder",
-    "Images/adding playlists/output of the operation.png",
-    "Images/adding playlists/paste the id.png",
-    "Images/adding playlists/copy the ID.png",
-    "Images/adding playlists",
-    "Images/basic usage",
-    "Images/basic usage/get your playlist path.png",
-    "Images/basic usage/tell it what to run.png",
-    "Images/basic usage/paste the path in with right click.png",
-    "Images/basic usage/start with python.png",
-    "Images/basic usage/paste and navigate using cd.png",
+    "Images/source usage",
+    "Getting Started.md",
+    "adl2.py internals.md",
+    "core/type.py.md",
+    "core/dl.py.md",
+    "Images/source usage/updating playlists",
+    "Images/source usage/adding playlists",
+    "Images/source usage/basic usage",
     "Images",
-    "New folder",
-    "New shortcut.lnk",
     "Untitled 1.canvas",
     "adl2.py update.md",
     "core.md",
     "core/tagging.py.md",
     "core/DescriptionParser.py.md",
-    "core/db.py.md",
     "core/config.py.md",
-    "adl2 internals.md",
-    "core"
+    "adl2 internals.md"
   ]
 }
