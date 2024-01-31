@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#Copyright (C) 2023  Ducks And Netherwort, full license can be found in LICENSE at the root of this project
+#Copyright (C) 2024  Ducks And Netherwort, full license can be found in LICENSE at the root of this project
 import logging
 import argparse
 from pathlib import Path
@@ -8,6 +8,7 @@ import tqdm
 from yt_dlp.utils import format_bytes
 from time import sleep #I hate that I have to do this
 import platform
+import PySimpleGUI as sg
 
 from core import DescriptionParser, dl, db, config
 from core.type import parserInput_t, metadata_t
@@ -18,7 +19,7 @@ parser = argparse.ArgumentParser( #get an argument parser
 	epilog = 'Written by Ducks And Netherwort (ducksnetherwort.ddns.net, github.com/DucksAndNetherwort)'
 )
 
-#logging.basicConfig(level='DEBUG') #pre startup logger
+#logging.basicConfig(level='DEBUG') #pre startup debug logger
 
 currentRateLimit = 6 #rate limit to use for downloading
 decreaseLimitBy = 2 #amount to decrease the limit by each failure
@@ -256,5 +257,68 @@ def main():
 		if(args.update):
 			update(dbConn, args.playlist.parent, args.ffmpeglocation)
 
+def guiMain():
+	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
+
+	basicTab = [
+		[sg.Text('basic operations')]
+	]
+	
+	updateTab = [
+		[sg.Text('Playlist Update')],
+	]
+
+	playlistTab = [
+		[sg.Frame('Selected Playlist', expand_x=True, layout=[
+			[sg.Input(key='playlist', default_text=settings['config'].get('input file', '')), sg.FileBrowse()],
+			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')]
+		])]
+	]
+
+	settingsTab = [
+		[sg.Text('program settings')]
+	]
+
+	infoTab = [
+		[sg.Text('stuff about the project')],
+		[sg.Text('Advanced Downloader MKII Copyright (C) 2024 Ducks And Netherwort')],
+		[sg.Text('This program comes with ABSOLUTELY NO WARRANTY; \nfor details see \'LICENSE\' in installation directory')]
+	]
+
+	logTab = [
+		[sg.Frame('Log Output', expand_x=False, layout=[
+			[sg.Multiline(key='logger', s=(None, 7), expand_x=False, write_only=True)]
+		])]
+	]
+
+	layout = [
+		[sg.TabGroup([[
+			sg.Tab('Basic', basicTab),
+			sg.Tab('Update', updateTab),
+			sg.Tab('Playlist', playlistTab),
+			sg.Tab('Settings', settingsTab),
+			sg.Tab('Info', infoTab),
+			sg.Tab('Log', logTab),
+		]])],
+		[sg.Text('Advanced Downloader MKII Copyright (C) 2024 Ducks And Netherwort')],
+	]
+
+	window = sg.Window('Advanced Downloader MKII', layout)
+
+	while True:
+		event, values = window.read()
+		# See if user wants to quit or window was closed
+		if event == sg.WINDOW_CLOSED or event == 'Quit':
+			break
+		elif event == 'Connect Playlist': #Connect Playlist button got pressed
+			window['playlistConnectionStatus'].update('Connecting', background_color='#FFA500')
+			window.refresh()
+			sleep(0.5)
+			window['playlistConnectionStatus'].update('Connected', background_color='#00f000')
+			window['playlistConnectionInfo'].update('Simply a test')
+
+	# Finish up by removing from the screen
+	window.close()
+
 if(__name__ == "__main__"):
-	main()
+	guiMain()

@@ -8,7 +8,7 @@ a = Analysis(
     ['src\\adl2.py'],
     pathex=[],
     binaries=[],
-    datas=[('src/core/descriptionParsers/', 'core/descriptionParsers/'), ('ffmpeg/', 'ffmpeg/')],
+    datas=[('src/core/descriptionParsers/', 'core/descriptionParsers/'), ('ffmpeg/', 'ffmpeg/'), ('LICENCE', 'LICENCE')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
