@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser( #get an argument parser
 )
 
 #logging.basicConfig(level='DEBUG') #pre startup debug logger
+buffer = ''
 
 currentRateLimit = 6 #rate limit to use for downloading
 decreaseLimitBy = 2 #amount to decrease the limit by each failure
@@ -259,6 +260,27 @@ def main():
 
 def guiMain():
 	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
+	
+	class Handler(logging.StreamHandler):
+		def __init__(self):
+			logging.StreamHandler.__init__(self)
+
+		def emit(self, record):
+			global buffer
+			record = f'{record.levelname}:{record.name}:{record.msg}'
+			print(record)
+			buffer = f'{buffer}\n{str(record)}'.strip()
+			window['log'].update(value=buffer)
+
+	logHandler = Handler()
+	logHandler.setLevel(settings['config'].get('log level', 'DEBUG'))
+	
+	logging.basicConfig(
+		level='DEBUG',
+		format='%(levelname)s:%(name)s:%(msg)s',
+		#filename='log.txt',
+		handlers=[logHandler]
+	)
 
 	basicTab = [
 		[sg.Text('basic operations')]
@@ -287,7 +309,7 @@ def guiMain():
 
 	logTab = [
 		[sg.Frame('Log Output', expand_x=False, layout=[
-			[sg.Multiline(key='logger', s=(None, 7), expand_x=False, write_only=True)]
+			[sg.Multiline(key='log', s=(None, 7), expand_x=False, write_only=True)]
 		])]
 	]
 
@@ -298,27 +320,63 @@ def guiMain():
 			sg.Tab('Playlist', playlistTab),
 			sg.Tab('Settings', settingsTab),
 			sg.Tab('Info', infoTab),
-			sg.Tab('Log', logTab),
+			sg.Tab('Logging', logTab),
 		]])],
 		[sg.Text('Advanced Downloader MKII Copyright (C) 2024 Ducks And Netherwort')],
 	]
 
 	window = sg.Window('Advanced Downloader MKII', layout)
 
+	global dbConn #this is so cleanup can happen in the case of a crash
+
+	log = logging.Logger('main')
+	log.addHandler(logHandler)
 	while True:
 		event, values = window.read()
 		# See if user wants to quit or window was closed
 		if event == sg.WINDOW_CLOSED or event == 'Quit':
 			break
 		elif event == 'Connect Playlist': #Connect Playlist button got pressed
+			log.info('playlist connection requested')
 			window['playlistConnectionStatus'].update('Connecting', background_color='#FFA500')
 			window.refresh()
-			sleep(0.5)
+			log.debug('checking db path')
+			dbPath = db.checkdbPath(values['playlist'])
+			if dbPath == TypeError:
+				log.warn('attempted to connect to a playlist database with invalid file type')
+				window['playlistConnectionStatus'].update('Failure', background_color='#f00000')
+				window['playlistConnectionInfo'].update('Invalid file type')
+				continue
+
+			log.debug('connecting to db')
+			dbConn = db.connect(str(dbPath))
+			if dbConn == None:
+				log.warn('failed to connect to database')
+				window['playlistConnectionStatus'].update('Failure', background_color='#f00000')
+				window['playlistConnectionInfo'].update('Failed to connect to database')
+				continue
+
+			log.debug('checking db validity')
+			dbValid = db.checkDB(dbConn)
+			if not dbValid:
+				log.debug('db was invalid, initializing')
+				window['playlistConnectionStatus'].update('Had to initialize database')
+				initSuccess = db.initializeDB(dbConn)
+				if not initSuccess:
+					log.warn('failed to initialize the database')
+					window['playlistConnectionStatus'].update('Failure', background_color='#f00000')
+					window['playlistConnectionInfo'].update('Failed to initialize database')
+					continue
+
+			log.debug('db was valid')
 			window['playlistConnectionStatus'].update('Connected', background_color='#00f000')
-			window['playlistConnectionInfo'].update('Simply a test')
 
 	# Finish up by removing from the screen
+	dbConn.close()
 	window.close()
 
 if(__name__ == "__main__"):
-	guiMain()
+	try:
+		guiMain()
+	except:
+		dbConn.close()
