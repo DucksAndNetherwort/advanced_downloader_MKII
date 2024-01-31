@@ -292,7 +292,7 @@ def guiMain():
 
 	playlistTab = [
 		[sg.Frame('Selected Playlist', expand_x=True, layout=[
-			[sg.Input(key='playlist', default_text=settings['config'].get('input file', '')), sg.FileBrowse()],
+			[sg.Input(key='playlist', default_text=settings['config'].get('input file', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
 			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')]
 		])]
 	]
@@ -341,8 +341,9 @@ def guiMain():
 			window['playlistConnectionStatus'].update('Connecting', background_color='#FFA500')
 			window.refresh()
 			log.debug('checking db path')
-			dbPath = db.checkdbPath(values['playlist'])
-			if dbPath == TypeError:
+			try:
+				dbPath = db.checkdbPath(values['playlist'])
+			except TypeError:
 				log.warn('attempted to connect to a playlist database with invalid file type')
 				window['playlistConnectionStatus'].update('Failure', background_color='#f00000')
 				window['playlistConnectionInfo'].update('Invalid file type')
