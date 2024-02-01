@@ -31,6 +31,7 @@ MANIFEST
 
 #don't need this getting in git
 ffmpeg.exe
+adl2.ini
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

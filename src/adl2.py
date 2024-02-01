@@ -22,6 +22,8 @@ parser = argparse.ArgumentParser( #get an argument parser
 #logging.basicConfig(level='DEBUG') #pre startup debug logger
 buffer = ''
 
+defaultLogLevel = 'INFO' #used if log level has not been set in config
+
 currentRateLimit = 6 #rate limit to use for downloading
 decreaseLimitBy = 2 #amount to decrease the limit by each failure
 increaseLimitBy = 0.5 #amount to increase limity by when things go well
@@ -260,6 +262,7 @@ def main():
 
 def guiMain():
 	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
+	ffmpegPath = settings['config'].get('ffmpegPath', ('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None))
 	
 	class Handler(logging.StreamHandler):
 		def __init__(self):
@@ -273,7 +276,7 @@ def guiMain():
 			window['log'].update(value=buffer)
 
 	logHandler = Handler()
-	logHandler.setLevel(settings['config'].get('log level', 'DEBUG'))
+	logHandler.setLevel(settings['config'].get('logLevel', defaultLogLevel))
 	
 	logging.basicConfig(
 		level='DEBUG',
@@ -288,17 +291,20 @@ def guiMain():
 	
 	updateTab = [
 		[sg.Text('Playlist Update')],
+		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder or this is not running on windows' if ffmpegPath == None else ''}")]
 	]
 
 	playlistTab = [
 		[sg.Frame('Selected Playlist', expand_x=True, layout=[
-			[sg.Input(key='playlist', default_text=settings['config'].get('input file', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
-			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')]
+			[sg.Input(key='playlist', default_text=settings['config'].get('defaultPlaylist', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
+			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
+			[sg.Checkbox('Automatically connect playlist on startup', default=settings['config'].get('autoConnect', 'False'), enable_events=True, key='autoConnectPlaylist')]
 		])]
 	]
 
 	settingsTab = [
-		[sg.Text('program settings')]
+		[sg.Text('theme (requires restart) (not working yet)')],
+		[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
 	]
 
 	infoTab = [
@@ -308,6 +314,8 @@ def guiMain():
 	]
 
 	logTab = [
+		[sg.Text('Logging Level')],
+		[sg.Combo(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default_value=settings['config'].get('logLevel', 'INFO'), readonly=True, enable_events=True, key='logLevelSelection')],
 		[sg.Frame('Log Output', expand_x=False, layout=[
 			[sg.Multiline(key='log', s=(None, 7), expand_x=False, write_only=True)]
 		])]
@@ -325,12 +333,16 @@ def guiMain():
 		[sg.Text('Advanced Downloader MKII Copyright (C) 2024 Ducks And Netherwort')],
 	]
 
-	window = sg.Window('Advanced Downloader MKII', layout)
+	window = sg.Window('Advanced Downloader MKII', layout, finalize=True)
 
 	global dbConn #this is so cleanup can happen in the case of a crash
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
+	if settings['config'].get('autoConnect', 'False'):
+		log.debug('automatically connecting playlist')
+		window.write_event_value('Connect Playlist', None)
+
 	while True:
 		event, values = window.read()
 		# See if user wants to quit or window was closed
@@ -371,6 +383,20 @@ def guiMain():
 
 			log.debug('db was valid')
 			window['playlistConnectionStatus'].update('Connected', background_color='#00f000')
+		
+		elif event == 'Remember Playlist':
+			log.debug('Got request to save playlist to settings')
+			settings['config']['defaultPlaylist'] = values['playlist']
+		
+		elif event == 'logLevelSelection':
+			log.info(f'changing logging level to {values["logLevelSelection"]}')
+			settings['config']['logLevel'] = values['logLevelSelection']
+			logHandler.setLevel(settings['config'].get('logLevel', defaultLogLevel))
+
+		elif event == 'autoConnectPlaylist':
+			log.debug(f'setting auto connect on startup to {values["autoConnectPlaylist"]}')
+			settings['config']['autoConnect'] = values['autoConnectPlaylist']
+
 
 	# Finish up by removing from the screen
 	dbConn.close()
