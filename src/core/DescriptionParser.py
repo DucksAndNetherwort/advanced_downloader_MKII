@@ -1,5 +1,6 @@
 #Copyright (C) 2023  Ducks And Netherwort, full license can be found in LICENSE at the root of this project
 from core.type import metadata_t, parserInput_t
+from core.dl import getPlaylistInfo
 
 import os
 import importlib.util
@@ -45,4 +46,6 @@ def parse(input: parserInput_t) -> metadata_t:
     else:
         output = parsers['generic'](input)
     output.uploader = input.uploader
+    if len(output.genre.split('=')) > 1 and 'youtube.com' in output.genre: #let's try to sort out those pesky "playlist as genre name" things
+        getPlaylistInfo(output.genre.split('=')[1].strip()).get('title', 'bad playlist')
     return(output)
