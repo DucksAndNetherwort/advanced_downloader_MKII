@@ -286,12 +286,15 @@ def guiMain():
 	)
 
 	basicTab = [
-		[sg.Text('basic operations')]
+		[sg.Text('Welcome to Advanced Downloader MKII!')],
+		[sg.Text('Before starting, make sure you have a copy of ffmpeg in the ffmpeg folder (see the text file in there for details)')],
+		[sg.Text('or you have it otherwise installed.')],
+		[sg.Text('Next, select a local playlist in the playlist tab. If you don\'t have one, just select the folder you want it in.')]
 	]
 	
 	updateTab = [
 		[sg.Text('Playlist Update')],
-		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder or this is not running on windows' if ffmpegPath == None else ''}")]
+		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows (which is harmless)' if ffmpegPath == None else ''}")]
 	]
 
 	playlistTab = [
@@ -308,7 +311,6 @@ def guiMain():
 	]
 
 	infoTab = [
-		[sg.Text('stuff about the project')],
 		[sg.Text('Advanced Downloader MKII Copyright (C) 2024 Ducks And Netherwort')],
 		[sg.Text('This program comes with ABSOLUTELY NO WARRANTY; \nfor details see \'LICENSE\' in installation directory')]
 	]
@@ -341,7 +343,7 @@ def guiMain():
 	log.addHandler(logHandler)
 	if settings['config'].get('autoConnect', 'False'):
 		log.debug('automatically connecting playlist')
-		window.write_event_value('Connect Playlist', None)
+		window.write_event_value('Connect Playlist', None) #this is to trigger playlist connection if the autoconnect feature has been enabled
 
 	while True:
 		event, values = window.read()
