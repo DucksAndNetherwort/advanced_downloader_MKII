@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #Copyright (C) 2024  Ducks And Netherwort, full license can be found in LICENSE at the root of this project
 import logging
+import logging.handlers
 import argparse
 from pathlib import Path
 import sqlite3
@@ -23,6 +24,7 @@ parser = argparse.ArgumentParser( #get an argument parser
 buffer = ''
 
 defaultLogLevel = 'INFO' #used if log level has not been set in config
+logFileName = 'log.txt'
 
 currentRateLimit = 6 #rate limit to use for downloading
 decreaseLimitBy = 2 #amount to decrease the limit by each failure
@@ -277,19 +279,23 @@ def guiMain():
 
 	logHandler = Handler()
 	logHandler.setLevel(settings['config'].get('logLevel', defaultLogLevel))
+	logFileHandler = logging.handlers.RotatingFileHandler(logFileName, backupCount=3)
+	logFileHandler.setLevel('DEBUG')
 	
 	logging.basicConfig(
 		level='DEBUG',
 		format='%(levelname)s:%(name)s:%(msg)s',
 		#filename='log.txt',
-		handlers=[logHandler]
+		handlers=[logHandler, logFileHandler]
 	)
 
-	basicTab = [
+	introTab = [
 		[sg.Text('Welcome to Advanced Downloader MKII!')],
-		[sg.Text('Before starting, make sure you have a copy of ffmpeg in the ffmpeg folder (see the text file in there for details)')],
-		[sg.Text('or you have it otherwise installed.')],
-		[sg.Text('Next, select a local playlist in the playlist tab. If you don\'t have one, just select the folder you want it in.')]
+		[sg.Text('Before starting, make sure you have a copy of ffmpeg in the ffmpeg folder')],
+		[sg.Text('(see the text file in there for details) or you have it otherwise installed.')],
+		[sg.Text('Next, select a local playlist in the playlist tab. If you don\'t have one, select the folder you want it in.')],
+		[sg.Text('You may also optionally select "Remember Playlist" to have it already selected at startup,')],
+		[sg.Text('and if you do that you can also select the "Automatically connect playlist on startup" checkbox')]
 	]
 	
 	updateTab = [
@@ -302,6 +308,10 @@ def guiMain():
 			[sg.Input(key='playlist', default_text=settings['config'].get('defaultPlaylist', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
 			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
 			[sg.Checkbox('Automatically connect playlist on startup', default=settings['config'].get('autoConnect', 'False'), enable_events=True, key='autoConnectPlaylist')]
+		])],
+		[sg.Frame('Remote Playlists', expand_x=True, layout=[
+			[sg.Input(key='remotePlaylistToAdd', tooltip='link to a youtube playlist, or the id of one'), sg.Button(button_text='Add to Local', key='addRemotePlaylist')],
+			[sg.Text('', key='remotePlaylistAdditionInfo')]
 		])]
 	]
 
@@ -325,7 +335,7 @@ def guiMain():
 
 	layout = [
 		[sg.TabGroup([[
-			sg.Tab('Basic', basicTab),
+			sg.Tab('Introduction', introTab),
 			sg.Tab('Update', updateTab),
 			sg.Tab('Playlist', playlistTab),
 			sg.Tab('Settings', settingsTab),
@@ -338,9 +348,16 @@ def guiMain():
 	window = sg.Window('Advanced Downloader MKII', layout, finalize=True)
 
 	global dbConn #this is so cleanup can happen in the case of a crash
+	playlistConnected = False
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
+	needRoll = Path(logFileName).is_file()
+	if needRoll:
+		log.debug('rolling log file')
+		logFileHandler.doRollover()
+		log.debug('rolled over log file')
+
 	if settings['config'].get('autoConnect', 'False'):
 		log.debug('automatically connecting playlist')
 		window.write_event_value('Connect Playlist', None) #this is to trigger playlist connection if the autoconnect feature has been enabled
@@ -384,6 +401,7 @@ def guiMain():
 					continue
 
 			log.debug('db was valid')
+			playlistConnected = True
 			window['playlistConnectionStatus'].update('Connected', background_color='#00f000')
 		
 		elif event == 'Remember Playlist':
@@ -398,6 +416,19 @@ def guiMain():
 		elif event == 'autoConnectPlaylist':
 			log.debug(f'setting auto connect on startup to {values["autoConnectPlaylist"]}')
 			settings['config']['autoConnect'] = values['autoConnectPlaylist']
+		
+		elif event == 'addRemotePlaylist':
+			log.debug(f'adding remote playlist {values["remotePlaylistToAdd"]} to local')
+			window['remotePlaylistAdditionInfo'].update('Adding Remote Playlist')
+			window.refresh()
+			if not playlistConnected:
+				window['remotePlaylistAdditionInfo'].update('You must connect to a local playlist first')
+				log.info('You must be connected to a local playlist to add a remote playlist to it')
+				continue
+			if values['remotePlaylistToAdd'] == '':
+				window['remotePlaylistAdditionInfo'].update('Please provide a playlist link or ID')
+				log.info('The system is not telepathic, please provide a remote playlist to add')
+				continue
 
 
 	# Finish up by removing from the screen
