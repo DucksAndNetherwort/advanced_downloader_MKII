@@ -161,9 +161,9 @@ def initializeDB(connection: sqlite3.Connection) -> bool:
 		log.debug('for some reason DB initialization failed')
 	return(success)
 
-def addPlaylist(connection: sqlite3.Connection, playlistId: str) -> None:
+def addPlaylist(connection: sqlite3.Connection, playlistId: str) -> int:
 	"""
-	add a youtube playlist to the local database
+	add a youtube playlist to the local database, returns -1 for failure, 0 for playlist added, and 1 for playlist already in db
 	"""
 	log = logging.getLogger('db/addPlaylist')
 	
@@ -171,16 +171,17 @@ def addPlaylist(connection: sqlite3.Connection, playlistId: str) -> None:
 	cursor.execute("SELECT * FROM playlists WHERE id = ?", (playlistId, ))
 	if cursor.fetchall():
 		log.debug('playlist is already in db')
-		return
+		return 1
 
 	playlistName = getPlaylistInfo(playlistId).get('title', 'bad playlist') #['title']
 	if playlistName == 'bad playlist':
-		log.fatal('playlist was no good, exiting')
-		exit(1)
+		log.error('playlist was no good')
+		return -1
 	
 	cursor.execute("INSERT INTO playlists (id, name) VALUES (:id, :name)", {"id": playlistId, "name": playlistName})
 	connection.commit()
 	cursor.close()
+	return 0
 
 def getPlaylists(connection: sqlite3.Connection) -> list[str]:
 	"""
