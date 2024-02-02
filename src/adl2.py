@@ -301,7 +301,7 @@ def guiMain():
 	
 	updateTab = [
 		[sg.Text('Playlist Update')],
-		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows (which is harmless)' if ffmpegPath == None else ''}")]
+		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows' if ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False else ''}")]
 	]
 
 	playlistTab = [
@@ -317,8 +317,11 @@ def guiMain():
 	]
 
 	settingsTab = [
-		[sg.Text('theme (requires restart) (not working yet)')],
-		[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
+		[sg.Frame('Application Settings', expand_x=True, layout=[
+			[sg.Checkbox('Ignore "ffmpeg not detected error" (requires restart)', key='ignoreFFmpegErrors', tooltip='Check this if you have ffmpeg properly installed on PATH, or you aren\'t on windows', enable_events=True, default=settings['config'].get('ignoreFFmpegErrors', 'False'))],
+			[sg.Text('theme (requires restart) (not working yet)')],
+			[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
+		])]
 	]
 
 	infoTab = [
@@ -453,6 +456,10 @@ def guiMain():
 			else:
 				log.critical('it seems the returns from db.addPlaylist have changed')
 				exit(1)
+		
+		elif event == 'ignoreFFmpegErrors':
+			log.debug(f'setting "ignore ffmpeg errors" to {values["ignoreFFmpegErrors"]}')
+			settings['config']['ignoreFFmpegErrors'] = values['ignoreFFmpegErrors']
 
 
 
