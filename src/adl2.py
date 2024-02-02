@@ -295,7 +295,8 @@ def guiMain():
 		[sg.Text('(see the text file in there for details) or you have it otherwise installed.')],
 		[sg.Text('Next, select a local playlist in the playlist tab. If you don\'t have one, select the folder you want it in.')],
 		[sg.Text('You may also optionally select "Remember Playlist" to have it already selected at startup,')],
-		[sg.Text('and if you do that you can also select the "Automatically connect playlist on startup" checkbox')]
+		[sg.Text('and if you do that you can also select the "Automatically connect playlist on startup" checkbox.')],
+		[sg.Text('Now add some YouTube playlists by putting their link or ID into the box and hitting "Add to Local"')]
 	]
 	
 	updateTab = [
@@ -306,7 +307,7 @@ def guiMain():
 	playlistTab = [
 		[sg.Frame('Selected Playlist', expand_x=True, layout=[
 			[sg.Input(key='playlist', default_text=settings['config'].get('defaultPlaylist', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
-			[sg.Button(button_text='Connect Playlist'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
+			[sg.Button(button_text='Connect Playlist', tooltip='Connect to a local playlist to run operations on it'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
 			[sg.Checkbox('Automatically connect playlist on startup', default=settings['config'].get('autoConnect', 'False'), enable_events=True, key='autoConnectPlaylist')]
 		])],
 		[sg.Frame('Remote Playlists', expand_x=True, layout=[
@@ -438,9 +439,10 @@ def guiMain():
 			log.debug(f'adding playlist with ID {playlistId}')
 			
 			window['remotePlaylistAdditionInfo'].update(f'Adding playlist with ID {playlistId}')
+			window.refresh()
 			playlistAdditionResult = db.addPlaylist(dbConn, playlistId)
 			if playlistAdditionResult == -1:
-				log.warn(f'failed to add playlist {playlistId}')
+				log.error(f'failed to add playlist {playlistId}') #seems yt-dlp crashes us anyway
 				window['remotePlaylistAdditionInfo'].update(f'Failed to add {playlistId}')
 			elif playlistAdditionResult == 1:
 				log.info(f'playlist "{db.getPlaylistNameFromID(dbConn, playlistId)}" was already in database')
