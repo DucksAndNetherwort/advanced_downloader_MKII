@@ -352,7 +352,7 @@ def guiMain():
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
-	needRoll = Path(logFileName).is_file()
+	needRoll = Path(logFileName).is_file() #this section is for rotating in a new log file at every startup
 	if needRoll:
 		log.debug('rolling log file')
 		logFileHandler.doRollover()
@@ -429,6 +429,29 @@ def guiMain():
 				window['remotePlaylistAdditionInfo'].update('Please provide a playlist link or ID')
 				log.info('The system is not telepathic, please provide a remote playlist to add')
 				continue
+
+			log.info(f'adding playlist {values["remotePlaylistToAdd"]}')
+			if(len(values['remotePlaylistToAdd'].split('=')) > 1):
+				playlistId = values['remotePlaylistToAdd'].split('=')[1].strip()
+			else:
+				playlistId = values['remotePlaylistToAdd'].strip()
+			log.debug(f'adding playlist with ID {playlistId}')
+			
+			window['remotePlaylistAdditionInfo'].update(f'Adding playlist with ID {playlistId}')
+			playlistAdditionResult = db.addPlaylist(dbConn, playlistId)
+			if playlistAdditionResult == -1:
+				log.warn(f'failed to add playlist {playlistId}')
+				window['remotePlaylistAdditionInfo'].update(f'Failed to add {playlistId}')
+			elif playlistAdditionResult == 1:
+				log.info(f'playlist "{db.getPlaylistNameFromID(dbConn, playlistId)}" was already in database')
+				window['remotePlaylistAdditionInfo'].update(f'Playlist "{db.getPlaylistNameFromID(dbConn, playlistId)}" was already in database')
+			elif playlistAdditionResult == 0:
+				log.info(f'successfully added playlist "{db.getPlaylistNameFromID(dbConn, playlistId)}"')
+				window['remotePlaylistAdditionInfo'].update(f'Added playlist "{db.getPlaylistNameFromID(dbConn, playlistId)}"')
+			else:
+				log.critical('it seems the returns from db.addPlaylist have changed')
+				exit(1)
+
 
 
 	# Finish up by removing from the screen
