@@ -37,6 +37,9 @@ def checkConfigValueValidity(key: str, valueToCheck: str) -> bool:
 		return True if regex.match(valueToCheck) != None else False
 
 def doesValueUseRegex(key: str) -> bool:
+	"""
+	checks if the provided key uses regex to define it's valid values
+	"""
 	return True if type(configValidValues[key][1]) == str else False
 
 def getConfig(connection: sqlite3.Connection, key: str) -> str:
