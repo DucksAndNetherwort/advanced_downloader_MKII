@@ -9,12 +9,21 @@ This file handles the database based configuration, storing a form of key/value 
 ### validConfigKeys
 The `validConfigKeys` list variable is used to keep track of what keys are considered valid/legal
 
+## configValidValues
+dictionary of valid values for each key, dict key is config key,
+
+value is tuple containing a string describing the meaning of the key and it's values, as well as either a list of
+allowable values or a regex, followed by the default value
+Examples:
+'useMetadataTitle': ('whether to add the title extracted from the title to the file metadata and filename', \['0', '1'\], '0')
+'anOptionThatTakesAnyPositiveNumber': ('it takes a positive number', r'\[0-9\]+', '5')
+
 ## Functions
 
 ### setConfig(connection: sqlite3.Connection, key: str, value: str) -> bool:
 `setConfig` takes a database connection along with a key/value pair,
 and will set the given key in the database to the given value, creating the key if needed.
-Returns `True` if the key was valid, i.e. found in `validConfigKeys`, or `False` if it is found to be invalid
+Returns `True` if the key was valid, i.e. found in `validConfigKeys` and the value was allowed for the key, or `False` if it is found to be invalid, or the value is not allowed
 
 ### removeConfig(connection: sqlite3.Connection, key: str) -> bool:
 `removeConfig` takes a database connection along with a key,

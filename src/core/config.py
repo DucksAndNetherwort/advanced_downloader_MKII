@@ -2,6 +2,7 @@
 
 import sqlite3
 import logging
+import re
 
 from core import db
 
@@ -10,9 +11,37 @@ validConfigKeys = ['useMetadataTitle', 'dontEmbedThumbnail', 'startingRateLimit'
 list of valid configuration keys
 """
 
+configValidValues = {
+	'useMetadataTitle': ('whether to add the title extracted from the track to the file metadata and filename', ['0', '1'], '0'),
+	'dontEmbedThumnail': ('disable the inclusion of thumbnails in the downloaded file', ['0', '1'], '0'),
+	'startingRateLimit': ('download rate limit to start off with', r'^[0-9]+$', '6')
+}
+"""
+dictionary of valid values for each key, dict key is config key,
+value is tuple containing a string describing the meaning of the key and it's values, as well as either a list of
+allowable values or a regex, followed by the default value
+Examples: 
+'useMetadataTitle': ('whether to add the title extracted from the title to the file metadata and filename', ['0', '1'], '0')
+'anOptionThatTakesAnyPositiveNumber': ('it takes a positive number', r'^[0-9]+$', '5')
+"""
+
+def checkConfigValueValidity(key: str, valueToCheck: str) -> bool:
+	"""
+	check if a value will be valid for a given key, true if it is, false if it isn't
+	"""
+	test = configValidValues[key][1]
+	if type(test) == list:
+		return True if valueToCheck in test else False
+	elif type(test) == str:
+		regex = re.compile(test)
+		return True if regex.match(valueToCheck) != None else False
+
+def doesValueUseRegex(key: str) -> bool:
+	return True if type(configValidValues[key][1]) == str else False
+
 def getConfig(connection: sqlite3.Connection, key: str) -> str:
 	"""
-	fetch the value corresponding to a key from the database, returns '0' by default
+	fetch the value corresponding to a key from the database, returns the key's default by default
 	"""
 	log = logging.getLogger('config/getConfig')
 
@@ -29,19 +58,22 @@ def getConfig(connection: sqlite3.Connection, key: str) -> str:
 	if result == None:
 		#log.debug("tried to fetch a key that wasn't in the db")
 		cursor.close()
-		return '0'
+		return configValidValues[key][2]
 	else:
 		cursor.close()
 		return result
 
 def setConfig(connection: sqlite3.Connection, key: str, value: str) -> bool:
 	"""
-	add key/value pair to database config table, return True if key was valid, False if it wasn't
+	add key/value pair to database config table, return True if key and value were valid, False if it wasn't
 	"""
 	log = logging.getLogger('config/setConfig')
 
 	if key not in validConfigKeys: #don't want to put bad keys in db where something might try to use them
 		log.warn("tried to set invalid key")
+		return False
+	
+	if not checkConfigValueValidity(key, value):
 		return False
 
 	cursor = connection.cursor()
