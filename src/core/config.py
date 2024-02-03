@@ -13,7 +13,7 @@ list of valid configuration keys
 
 configValidValues = {
 	'useMetadataTitle': ('whether to add the title extracted from the track to the file metadata and filename', ['0', '1'], '0'),
-	'dontEmbedThumnail': ('disable the inclusion of thumbnails in the downloaded file', ['0', '1'], '0'),
+	'dontEmbedThumbnail': ('disable the inclusion of thumbnails in the downloaded file', ['0', '1'], '0'),
 	'startingRateLimit': ('download rate limit to start off with', r'^[0-9]+$', '6')
 }
 """
@@ -49,7 +49,8 @@ def getDefaultValue(key: str) -> str:
 	if key not in validConfigKeys:
 		return None
 	else: 
-		return configValidValues[key][2]
+		default = configValidValues[key][2]
+		return default
 
 def getConfigDescription(key: str) -> str:
 	"""
@@ -79,7 +80,8 @@ def getConfig(connection: sqlite3.Connection, key: str) -> str:
 	if result == None:
 		#log.debug("tried to fetch a key that wasn't in the db")
 		cursor.close()
-		return configValidValues[key][2]
+		default = getDefaultValue(key)
+		return default
 	else:
 		cursor.close()
 		return result
