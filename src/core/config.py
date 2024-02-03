@@ -51,6 +51,15 @@ def getDefaultValue(key: str) -> str:
 	else: 
 		return configValidValues[key][2]
 
+def getConfigDescription(key: str) -> str:
+	"""
+	returns the description for the given config key, or None if the key was invalid
+	"""
+	if key not in validConfigKeys:
+		return None
+	else: 
+		return configValidValues[key][0]
+
 def getConfig(connection: sqlite3.Connection, key: str) -> str:
 	"""
 	fetch the value corresponding to a key from the database, returns the key's default by default
