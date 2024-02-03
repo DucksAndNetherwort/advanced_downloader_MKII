@@ -301,7 +301,7 @@ def guiMain():
 	
 	updateTab = [
 		[sg.Text('Playlist Update')],
-		[sg.Text(f"{'Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows' if ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False else ''}")]
+		[sg.Text('Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows', background_color='#f00000', visible=(ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False))]
 	]
 
 	playlistTab = [
@@ -310,7 +310,7 @@ def guiMain():
 			[sg.Button(button_text='Connect Playlist', tooltip='Connect to a local playlist to run operations on it'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
 			[sg.Checkbox('Automatically connect playlist on startup', default=settings['config'].get('autoConnect', 'False'), enable_events=True, key='autoConnectPlaylist')]
 		])],
-		[sg.Frame('Remote Playlists', expand_x=True, layout=[
+		[sg.Frame('Remote Playlists', expand_x=True, expand_y=True, layout=[
 			[sg.Input(key='remotePlaylistToAdd', tooltip='link to a youtube playlist, or the id of one'), sg.Button(button_text='Add to Local', key='addRemotePlaylist')],
 			[sg.Text('', key='remotePlaylistAdditionInfo')]
 		])]
@@ -321,6 +321,11 @@ def guiMain():
 			[sg.Checkbox('Ignore "ffmpeg not detected error" (requires restart)', key='ignoreFFmpegErrors', tooltip='Check this if you have ffmpeg properly installed on PATH, or you aren\'t on windows', enable_events=True, default=settings['config'].get('ignoreFFmpegErrors', 'False'))],
 			[sg.Text('theme (requires restart) (not working yet)')],
 			[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
+		])],
+		[sg.Frame('Local playlist settings', expand_x=True, expand_y=True, layout=[
+			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Combo([], readonly=True, key='newConfigValueDropdown',visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
+			[sg.Button('Set new config value'), sg.Text('Current Value:'), sg.Text('', key='configCurrentValue')],
+			[sg.Text('Invalid Value', background_color='#f00000', visible=False)]
 		])]
 	]
 
