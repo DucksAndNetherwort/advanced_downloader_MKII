@@ -42,6 +42,15 @@ def doesValueUseRegex(key: str) -> bool:
 	"""
 	return True if type(configValidValues[key][1]) == str else False
 
+def getDefaultValue(key: str) -> str:
+	"""
+	returns the default value for the given config key, or None if the key was invalid
+	"""
+	if key not in validConfigKeys:
+		return None
+	else: 
+		return configValidValues[key][2]
+
 def getConfig(connection: sqlite3.Connection, key: str) -> str:
 	"""
 	fetch the value corresponding to a key from the database, returns the key's default by default
