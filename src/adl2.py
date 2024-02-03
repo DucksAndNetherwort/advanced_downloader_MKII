@@ -352,6 +352,7 @@ def guiMain():
 	window = sg.Window('Advanced Downloader MKII', layout, finalize=True)
 
 	global dbConn #this is so cleanup can happen in the case of a crash
+	global playlistConnected
 	playlistConnected = False
 
 	log = logging.Logger('main')
@@ -464,11 +465,13 @@ def guiMain():
 
 
 	# Finish up by removing from the screen
-	dbConn.close()
+	if playlistConnected:
+		dbConn.close()
 	window.close()
 
 if(__name__ == "__main__"):
 	try:
 		guiMain()
 	except:
-		dbConn.close()
+		if playlistConnected:
+			dbConn.close()
