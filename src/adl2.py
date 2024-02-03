@@ -305,7 +305,7 @@ def guiMain():
 	]
 
 	playlistTab = [
-		[sg.Frame('Selected Playlist', expand_x=True, layout=[
+		[sg.Frame('Local Playlist', expand_x=True, layout=[
 			[sg.Input(key='playlist', default_text=settings['config'].get('defaultPlaylist', ''), tooltip='select the folder containing the playlist'), sg.FolderBrowse(tooltip='select the folder containing the playlist'), sg.Button(button_text='Remember Playlist', tooltip='Click to automatically select this playlist on startup')],
 			[sg.Button(button_text='Connect Playlist', tooltip='Connect to a local playlist to run operations on it'), sg.Text('Disconnected', key='playlistConnectionStatus', background_color='#f00000'), sg.Text('', key='playlistConnectionInfo')],
 			[sg.Checkbox('Automatically connect playlist on startup', default=settings['config'].get('autoConnect', 'False'), enable_events=True, key='autoConnectPlaylist')]
