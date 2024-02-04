@@ -12,7 +12,7 @@ list of valid configuration keys
 """
 
 configValidValues = {
-	'useMetadataTitle': ('whether to add the title extracted from the track to the file metadata and filename', ['0', '1'], '0'),
+	'useMetadataTitle': ('whether to add the title extracted from the track to the file name and metadata', ['0', '1'], '0'),
 	'dontEmbedThumbnail': ('disable the inclusion of thumbnails in the downloaded file', ['0', '1'], '0'),
 	'startingRateLimit': ('download rate limit to start off with', r'^[0-9]+$', '6')
 }
@@ -51,6 +51,13 @@ def getDefaultValue(key: str) -> str:
 	else: 
 		default = configValidValues[key][2]
 		return default
+
+def getAcceptibleValues(key: str) -> list | str:
+	"""
+	returns the accepted values for a config key, be they multiple choice or regex
+	"""
+	result = configValidValues[key][1]
+	return result
 
 def getConfigDescription(key: str) -> str:
 	"""
