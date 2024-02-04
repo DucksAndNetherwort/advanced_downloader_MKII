@@ -362,6 +362,7 @@ def guiMain():
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
+	log.addHandler(logFileHandler)
 	needRoll = Path(logFileName).is_file() #this section is for rotating in a new log file at every startup
 	if needRoll:
 		log.debug('rolling log file')
