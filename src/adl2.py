@@ -323,9 +323,9 @@ def guiMain():
 			[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
 		])],
 		[sg.Frame('Local playlist settings', expand_x=True, expand_y=True, layout=[
-			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Combo([], readonly=True, key='newConfigValueDropdown',visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
-			[sg.Button('Set new config value'), sg.Text('Current Value:'), sg.Text('', key='configCurrentValue')],
-			[sg.Text('Invalid Value', background_color='#f00000', visible=False)]
+			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Text('You must connect to a playlist first', background_color='#f00000', visible=False, key='configDBnotConnectedWarning'), sg.Combo([], readonly=True, key='newConfigValueDropdown',visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
+			[sg.Button('Set new config value'), sg.Text('Current Value:'), sg.Text('', key='configCurrentValue'), sg.Text('Default Value:'), sg.Text('', key='defaultConfigValue')],
+			[sg.Text('Invalid Value Selected', background_color='#f00000', visible=False), sg.Text('Option Description:'), sg.Text('', key='configOptionDescription')]
 		])]
 	]
 
@@ -466,6 +466,29 @@ def guiMain():
 		elif event == 'ignoreFFmpegErrors':
 			log.debug(f'setting "ignore ffmpeg errors" to {values["ignoreFFmpegErrors"]}')
 			settings['config']['ignoreFFmpegErrors'] = values['ignoreFFmpegErrors']
+		
+		elif event == 'settingsKeySelection':
+			option = values['settingsKeySelection']
+			log.debug(f'config option {option} has been selected')
+			if not playlistConnected:
+				log.warn('tried to select config option without a playlist connected')
+				window['configDBnotConnectedWarning'].update(visible=True)
+				continue
+			else:
+				window['configDBnotConnectedWarning'].update(visible=False)
+
+			currentValue = config.getConfig(dbConn, option)
+			defaultValue = config.getDefaultValue(option)
+			window['configCurrentValue'].update(currentValue)
+			window['defaultConfigValue'].update(defaultValue)
+			window['configOptionDescription'].update(config.getConfigDescription(option))
+			dropdownInput = True if not config.doesValueUseRegex(option) else False
+
+			window['newConfigValueDropdown'].update(visible=dropdownInput)
+			window['newConfigValueTextBox'].update(visible=not dropdownInput)
+
+			if dropdownInput:
+				window['newConfigValueDropdown'].update(values=config.getAcceptibleValues(option))
 
 
 
