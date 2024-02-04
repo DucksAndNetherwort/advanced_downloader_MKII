@@ -12,8 +12,8 @@ list of valid configuration keys
 """
 
 configValidValues = {
-	'useMetadataTitle': ('whether to add the title extracted from the track to the file name and metadata', ['0', '1'], '0'),
-	'dontEmbedThumbnail': ('disable the inclusion of thumbnails in the downloaded file', ['0', '1'], '0'),
+	'useMetadataTitle': ('whether to add the title extracted from the track to the file name and metadata', ['no', 'yes'], 'no'),
+	'dontEmbedThumbnail': ('disable the inclusion of thumbnails in the downloaded file', ['omit', 'include'], 'include'),
 	'startingRateLimit': ('download rate limit to start off with', r'^[0-9]+$', '6')
 }
 """
@@ -25,7 +25,7 @@ Examples:
 'anOptionThatTakesAnyPositiveNumber': ('it takes a positive number', r'^[0-9]+$', '5')
 """
 
-def checkConfigValueValidity(key: str, valueToCheck: str) -> bool:
+def validateConfigValue(key: str, valueToCheck: str) -> bool:
 	"""
 	check if a value will be valid for a given key, true if it is, false if it isn't
 	"""
@@ -103,7 +103,8 @@ def setConfig(connection: sqlite3.Connection, key: str, value: str) -> bool:
 		log.warn("tried to set invalid key")
 		return False
 	
-	if not checkConfigValueValidity(key, value):
+	if not validateConfigValue(key, value):
+		log.warn("invalid value for key")
 		return False
 
 	cursor = connection.cursor()
