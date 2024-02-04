@@ -322,10 +322,10 @@ def guiMain():
 			[sg.Text('theme (requires restart) (not working yet)')],
 			[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
 		])],
-		[sg.Frame('Local playlist settings', expand_x=True, expand_y=True, layout=[
-			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Text('You must connect to a playlist first', background_color='#f00000', visible=False, key='configDBnotConnectedWarning'), sg.Combo([], readonly=True, key='newConfigValueDropdown',visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
+		[sg.Frame('Local Playlist Settings', expand_x=True, expand_y=True, layout=[
+			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Text('You must connect to a playlist first', background_color='#f00000', visible=False, key='configDBnotConnectedWarning'), sg.Combo([], readonly=True, key='newConfigValueDropdown', size=15, visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
 			[sg.Button('Set new config value'), sg.Text('Current Value:'), sg.Text('', key='configCurrentValue'), sg.Text('Default Value:'), sg.Text('', key='defaultConfigValue')],
-			[sg.Text('Invalid Value Selected', background_color='#f00000', visible=False), sg.Text('Option Description:'), sg.Text('', key='configOptionDescription')]
+			[sg.Text('Invalid Value Selected', background_color='#f00000', key='invalidValueWarning', visible=False), sg.Text('Saved', background_color='#00f000', key='configSavedIndicator', visible=False), sg.Text('Provide a value', background_color='#f00000', key='provideAValueWarning', visible=False), sg.Text('Option Description:'), sg.Text('', key='configOptionDescription')]
 		])]
 	]
 
@@ -471,6 +471,9 @@ def guiMain():
 		elif event == 'settingsKeySelection':
 			option = values['settingsKeySelection']
 			log.debug(f'config option {option} has been selected')
+			window['provideAValueWarning'].update(visible=False)
+			window['configSavedIndicator'].update(visible=False)
+			window['invalidValueWarning'].update(visible=False)
 			if not playlistConnected:
 				log.warn('tried to select config option without a playlist connected')
 				window['configDBnotConnectedWarning'].update(visible=True)
@@ -490,7 +493,44 @@ def guiMain():
 
 			if dropdownInput:
 				window['newConfigValueDropdown'].update(values=config.getAcceptibleValues(option))
+		
+		elif event == 'Set new config value':
+			option = values['settingsKeySelection']
+			log.debug('setting new config value')
+			if option == '':
+				log.debug('no option selected')
+				continue
 
+			window['provideAValueWarning'].update(visible=False)
+			window['configSavedIndicator'].update(visible=False)
+			window['invalidValueWarning'].update(visible=False)
+			if not playlistConnected:
+				log.warn('tried to set config without a playlist connected')
+				window['configDBnotConnectedWarning'].update(visible=True)
+				continue
+			else:
+				window['configDBnotConnectedWarning'].update(visible=False)
+
+			dropdownInput = True if not config.doesValueUseRegex(option) else False
+			newValue = values['newConfigValueDropdown'] if dropdownInput else values['newConfigValueTextBox']
+			if newValue == '':
+				log.debug('attempted to set a config value to empty string')
+				window['provideAValueWarning'].update(visible=True)
+				continue
+
+			if not config.validateConfigValue(option, newValue):
+				log.debug('invalid config option')
+				window['invalidValueWarning'].update(visible=True)
+				continue
+			
+			log.debug('new value seems legit')
+			if not config.setConfig(dbConn, option, newValue): #just in case it says there is a problem with the key or value
+				log.error(f'failed to save configuration value {newValue} to key {option}')
+				window['invalidValueWarning'].update(visible=True)
+				continue
+			log.info('new setting saved successfully')
+			window['configSavedIndicator'].update(visible=True)
+			window['configCurrentValue'].update(newValue)
 
 
 	# Finish up by removing from the screen
