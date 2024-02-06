@@ -300,8 +300,10 @@ def guiMain():
 	]
 	
 	updateTab = [
-		[sg.Text('Playlist Update')],
-		[sg.Text('Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows', background_color='#f00000', visible=(ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False))]
+		[sg.Text('Playlist Connected', background_color='#00f000', key='updatePagePlaylistConnectedIndicator', visible=False), sg.Text('Playlist Disconnected', background_color='#f00000', key='updatePagePlaylistDisconnectedWarning', visible=True), sg.Text('Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows', background_color='#f00000', visible=(ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False))],
+		[sg.Frame('Playlist Contents', expand_x=True, layout=[
+			[sg.Button('Refresh'), sg.Text('Remote Playlist Count:'), sg.Text('', key='remotePlaylistCount'), sg.Text('Local Item Count:'), sg.Text('', key='playlistLocalItemsCount')]
+		])]
 	]
 
 	playlistTab = [
@@ -323,7 +325,7 @@ def guiMain():
 			[sg.Combo(sg.theme_list(), default_value=sg.theme(), s=(15,22), enable_events=True, readonly=True, k='theme')]
 		])],
 		[sg.Frame('Local Playlist Settings', expand_x=True, expand_y=True, layout=[
-			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Text('You must connect to a playlist first', background_color='#f00000', visible=False, key='configDBnotConnectedWarning'), sg.Combo([], readonly=True, key='newConfigValueDropdown', size=15, visible=False), sg.Input(key='newConfigValueTextBox', visible=False)],
+			[sg.Combo(config.validConfigKeys, readonly=True, enable_events=True, key='settingsKeySelection'), sg.Text('You must connect to a playlist first', background_color='#f00000', visible=False, key='configDBnotConnectedWarning'), sg.Combo([], readonly=True, key='newConfigValueDropdown', size=20, visible=False), sg.Input(key='newConfigValueTextBox', size=20, visible=False)],
 			[sg.Button('Set new config value'), sg.Text('Current Value:'), sg.Text('', key='configCurrentValue'), sg.Text('Default Value:'), sg.Text('', key='defaultConfigValue')],
 			[sg.Text('Invalid Value Selected', background_color='#f00000', key='invalidValueWarning', visible=False), sg.Text('Saved', background_color='#00f000', key='configSavedIndicator', visible=False), sg.Text('Provide a value', background_color='#f00000', key='provideAValueWarning', visible=False), sg.Text('Option Description:'), sg.Text('', key='configOptionDescription')]
 		])]
@@ -411,9 +413,10 @@ def guiMain():
 					window['playlistConnectionInfo'].update('Failed to initialize database')
 					continue
 
-			log.debug('db was valid')
+			log.info('db connection successful')
 			playlistConnected = True
 			window['playlistConnectionStatus'].update('Connected', background_color='#00f000')
+			window.write_event_value('Refresh', None)
 		
 		elif event == 'Remember Playlist':
 			log.debug('Got request to save playlist to settings')
@@ -531,6 +534,20 @@ def guiMain():
 			log.info('new setting saved successfully')
 			window['configSavedIndicator'].update(visible=True)
 			window['configCurrentValue'].update(newValue)
+		
+		elif event == 'Refresh':
+			log.debug('refreshing playlist stats')
+			if not playlistConnected:
+				log.warning('cannot refresh information relating to a playlist that is not connected')
+				continue
+			numberOfPlaylists = len(db.getPlaylists(dbConn))
+			numberOfTracks = len(db.getAllDownloadedTracks(dbConn)['id'])
+			log.debug(f'number of playlists is {numberOfPlaylists}, number of tracks is {numberOfTracks}')
+			window['remotePlaylistCount'].update(numberOfPlaylists)
+			window['playlistLocalItemsCount'].update(numberOfTracks)
+
+			window['updatePagePlaylistConnectedIndicator'].update(visible=playlistConnected)
+			window['updatePagePlaylistDisconnectedWarning'].update(visible=not playlistConnected)
 
 
 	# Finish up by removing from the screen
