@@ -69,7 +69,7 @@ def trackProgressHook(progressBar, progress):
 			if currentRateLimit < 4:
 				currentRateLimit = 4
 
-def update(connection: sqlite3.Connection, playlistDirectory: Path, ffmpegPath: str = None):
+def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory: Path, ffmpegPath: str = None):
 	log = logging.getLogger('update')
 	log.info(f'updating playlist at {playlistDirectory}')
 	bruh = logging.getLogger('yt-dlp').setLevel(logging.WARNING)
@@ -79,6 +79,8 @@ def update(connection: sqlite3.Connection, playlistDirectory: Path, ffmpegPath: 
 	global increaseLimitBy
 	global rateLimited
 
+	window.write_event_value('progressUpdate', ['starting', 1])
+	
 	existing = db.getAllDownloadedTracks(connection)
 	playlistIDs = db.getPlaylists(connection)
 	allPlaylistItems = [[], []] #[0] is a list of track ids, [1] is a matching list of lists containing playlists the respective item belongs to
@@ -120,6 +122,9 @@ def update(connection: sqlite3.Connection, playlistDirectory: Path, ffmpegPath: 
 
 	#time to actually start updating the playlist
 
+	window.write_event_value('progressUpdate', ['started', len(todo)])
+	window.write_event_value('progressUpdate', ['playlist totals', playlistItemsToDownload, correspondingPlaylists])
+
 	playlistBars = []
 	for index, pl in enumerate(correspondingPlaylists):
 		playlistBars.append(tqdm.tqdm(total=playlistItemsToDownload[index], leave=True, desc=pl, unit='track', unit_scale=True))
@@ -131,7 +136,8 @@ def update(connection: sqlite3.Connection, playlistDirectory: Path, ffmpegPath: 
 		if configRateLimit > 0:
 			currentRateLimit = configRateLimit
 	
-	for track in tqdm.tqdm(todo, leave=True, desc='Overall Progress', unit='track', unit_scale=True): #track[0] is the id, track[1] is the playlists
+	for iteration, track in enumerate(todo): #track[0] is the id, track[1] is the playlists
+		window.write_event_value('progressUpdate', ['overall progress', iteration])
 		parserInput: parserInput_t = parserInput_t(None, None, None, None)#collect parser input data
 		parserInput.id = track[0]
 		parserInput.uploader, parserInput.title, parserInput.description, filesizeEstimate = dl.getDescription(track[0])
@@ -265,7 +271,8 @@ def main():
 def guiMain():
 	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
 	ffmpegPath = settings['config'].get('ffmpegPath', ('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None))
-	
+	progressBarHeight = 15
+
 	class Handler(logging.StreamHandler):
 		def __init__(self):
 			logging.StreamHandler.__init__(self)
@@ -303,6 +310,12 @@ def guiMain():
 		[sg.Text('Playlist Connected', background_color='#00f000', key='updatePagePlaylistConnectedIndicator', visible=False), sg.Text('Playlist Disconnected', background_color='#f00000', key='updatePagePlaylistDisconnectedWarning', visible=True), sg.Text('Warning: ffmpeg has not been detected in the ffmpeg folder, or this is not running on windows', background_color='#f00000', visible=(ffmpegPath == None and settings['config'].get('ignoreFFmpegErrors', 'False') == False))],
 		[sg.Frame('Playlist Contents', expand_x=True, layout=[
 			[sg.Button('Refresh'), sg.Text('Remote Playlist Count:'), sg.Text('', key='remotePlaylistCount'), sg.Text('Local Item Count:'), sg.Text('', key='playlistLocalItemsCount')]
+		])],
+		[sg.Frame('Playlist Update', expand_x=True, expand_y=True, layout=[
+			[sg.Button('Update Playlist'), sg.Text('Overall Progress:'), sg.Text('Inactive', background_color='#f00000', key='downloadInactiveIndicator', visible=True), sg.Text('Starting', background_color='#FFA500', key='downloadStartingIndicator', visible=False), sg.Text('Completed', background_color='#00f000', visible=False), sg.ProgressBar(max_value=60, orientation='h', size=(10, progressBarHeight), expand_x=True, key='overallProgress', visible=False), sg.Push(), sg.Text('-/-', key='overallProgressCounter', visible=False)],
+			[sg.Text('Per-playlist Progress:'), sg.Combo([], readonly=True, size=20, enable_events=True, key='perPlaylistProgressSelector'), sg.ProgressBar(max_value=60, orientation='h', size=(10, progressBarHeight), expand_x=True, key='perPlaylistProgress'), sg.Text('-/-', key='perPlaylistProgressCounter')],
+			[sg.Text('Track Progress:'), sg.ProgressBar(max_value=60, orientation='h', size=(10, progressBarHeight), expand_x=True, key='trackProgress'), sg.Text('', key='trackDownloadProgressCounter')],
+			[sg.Text('Current Track:'), sg.Text('', key='currentDownloadTrack')]
 		])]
 	]
 
@@ -361,6 +374,10 @@ def guiMain():
 	global dbConn #this is so cleanup can happen in the case of a crash
 	global playlistConnected
 	playlistConnected = False
+
+	global totalRemoteItems
+	global remotePlaylistCounts
+	global correspondingRemotePlaylists
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
@@ -548,6 +565,28 @@ def guiMain():
 
 			window['updatePagePlaylistConnectedIndicator'].update(visible=playlistConnected)
 			window['updatePagePlaylistDisconnectedWarning'].update(visible=not playlistConnected)
+		
+		elif event == 'Update Playlist':
+			log.debug('got request to update playlist')
+		
+		elif event == 'progressUpdate':
+			data = values['progressUpdate']
+			operation = data[0]
+			value = data[1: ]
+			if operation == 'overall progress':
+				window['overallProgress'].update(value)
+			elif operation == 'starting':
+				window['downloadInactiveIndicator'].update(visible=False)
+				window['downloadStartingIndicator'].update(visible=True)
+			elif operation == 'started':
+				window['downloadStartingIndicator'].update(visible=False)
+				window['overallProgress'].update(visible=True, current_count=0, max=value)
+				window['overallProgressCounter'].update(visible=True)
+				totalRemoteItems: int = value
+			elif operation == 'playlist totals':
+				remotePlaylistCounts: list = value[0]
+				correspondingRemotePlaylists:list = value[1]
+
 
 
 	# Finish up by removing from the screen
