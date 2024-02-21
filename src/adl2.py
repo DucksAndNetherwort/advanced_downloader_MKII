@@ -51,7 +51,7 @@ def connectDB(path: Path) -> sqlite3.Connection:
 	
 	return connection
 
-def trackProgressHook(progressBar, progress):
+def trackProgressHook(window: sg.Window, progress):
 	global currentRateLimit
 	global decreaseLimitBy
 	global increaseLimitBy
@@ -60,8 +60,7 @@ def trackProgressHook(progressBar, progress):
 	# Update the overall progress bar with appropriate units
 	log = logging.getLogger('trackProgressHook')
 	if progress['status'] == 'downloading':
-		progressBar.update(progress['downloaded_bytes'] - progressBar.n)
-		progressBar.refresh()
+		window.write_event_value('progressUpdate', tuple(['download progress', progress['downloaded_bytes']]))
 	elif progress['status'] == 'error' and 'message' in progress:
 		log.debug(f'got download error {progress["message"]}')
 		if '429 Too Many Requests' or '403 Forbidden' in progress['message']:
@@ -69,7 +68,7 @@ def trackProgressHook(progressBar, progress):
 			if currentRateLimit < 4:
 				currentRateLimit = 4
 
-def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory: Path, ffmpegPath: str = None):
+def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: str = None):
 	log = logging.getLogger('update')
 	log.info(f'updating playlist at {playlistDirectory}')
 	bruh = logging.getLogger('yt-dlp').setLevel(logging.WARNING)
@@ -79,6 +78,8 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 	global increaseLimitBy
 	global rateLimited
 
+	connection = db.connect(dbPath)
+	log.debug('got another db connection just for this thread')
 	window.write_event_value('progressUpdate', ['starting', 1])
 	
 	existing = db.getAllDownloadedTracks(connection)
@@ -122,12 +123,13 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 
 	#time to actually start updating the playlist
 
-	window.write_event_value('progressUpdate', ['started', len(todo)])
-	window.write_event_value('progressUpdate', ['playlist totals', playlistItemsToDownload, correspondingPlaylists])
+	window.write_event_value('progressUpdate', tuple(['started', len(todo)]))
+	window.write_event_value('progressUpdate', tuple(['playlist totals', playlistItemsToDownload, correspondingPlaylists]))
+	log.debug('sent startup data to GUI')
 
-	playlistBars = []
+	'''playlistBars = []
 	for index, pl in enumerate(correspondingPlaylists):
-		playlistBars.append(tqdm.tqdm(total=playlistItemsToDownload[index], leave=True, desc=pl, unit='track', unit_scale=True))
+		playlistBars.append(tqdm.tqdm(total=playlistItemsToDownload[index], leave=True, desc=pl, unit='track', unit_scale=True))'''
 	
 	parserMisses = [[], []] #store what uploaders are not available for parsing, and how many each one occurs. Maybe I'll even make use of it someday
 
@@ -137,10 +139,11 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 			currentRateLimit = configRateLimit
 	
 	for iteration, track in enumerate(todo): #track[0] is the id, track[1] is the playlists
-		window.write_event_value('progressUpdate', ['overall progress', iteration])
+		window.write_event_value('progressUpdate', tuple(['overall progress', iteration]))
 		parserInput: parserInput_t = parserInput_t(None, None, None, None)#collect parser input data
 		parserInput.id = track[0]
 		parserInput.uploader, parserInput.title, parserInput.description, filesizeEstimate = dl.getDescription(track[0])
+		log.debug('fetched description')
 
 		skipThisIteration = False
 		if parserInput.title == None: #just in case a track is unavailable
@@ -152,12 +155,14 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 
 		if not skipThisIteration:
 			metadata = DescriptionParser.parse(parserInput)
+			log.debug('parsed metadata')
 			if not DescriptionParser.isPresent(parserInput.uploader): #perform checks and increments for the parser misses counter
 				if parserInput.uploader in parserMisses[0]:
 					parserMisses[1][parserMisses[0].index(parserInput.uploader)] += 1
 				else:
 					parserMisses[0].append(parserInput.uploader)
 					parserMisses[1].append(1)
+				window.write_event_value('progressUpdate', tuple(['parser misses', parserMisses]))
 
 			filenameTitle = dl.filenameCleaner(parserInput.title)
 
@@ -165,9 +170,10 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 			successes = 0
 			success = False
 			while not success:
-				with tqdm.tqdm(unit="B", unit_scale=True, leave=False, desc=filenameTitle, total=filesizeEstimate) as trackBar:
-					progressHook = [lambda data: trackProgressHook(trackBar, data)]
-					success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == '0' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook, ffmpegPath) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
+				window.write_event_value('progressUpdate', tuple(['download size', filesizeEstimate]))
+				progressHook = [lambda data: trackProgressHook(window, data)]
+				log.debug('starting download')
+				success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == '0' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook, ffmpegPath) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
 
 				if rateLimited:
 					log.debug(f"got rate limited, after delay the new target will be {currentRateLimit}M")
@@ -183,13 +189,16 @@ def update(connection: sqlite3.Connection, window: sg.Window, playlistDirectory:
 					log.fatal(f"youtube got huffy and isn't letting us download, exiting, last attempted rate limit is {currentRateLimit}")
 					exit(1)
 				
+				log.debug('download successful')
 				successes = (successes + 1) if success else 0 #increment the successes counter if this was a success
 				if successes > 3:
 					currentRateLimit = currentRateLimit + increaseLimitBy
 					successes = 0
 
+		log.debug('updating progress bars')
 		for playlist in track[1]: #increments each playlist progress bar the track is part of
-			playlistBars[correspondingPlaylists.index(db.getPlaylistNameFromID(connection, playlist))].update(1)
+			window.write_event_value('progressUpdate', tuple(['increment playlist', db.getPlaylistNameFromID(connection, playlist)]))
+			#playlistBars[correspondingPlaylists.index(db.getPlaylistNameFromID(connection, playlist))].update(1)
 		
 		if not skipThisIteration:
 			db.addTrack(connection, parserInput.id, filenameTitle + '.mp3', metadata, track[1])
@@ -268,12 +277,17 @@ def main():
 		if(args.update):
 			update(dbConn, args.playlist.parent, args.ffmpeglocation)
 
+global totalRemoteItems
+global remotePlaylistTotals
+global correspondingRemotePlaylists
+global remotePlaylistCounts
+
 def guiMain():
 	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
-	ffmpegPath = settings['config'].get('ffmpegPath', ('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None))
+	ffmpegPath: str = settings['config'].get('ffmpegPath', ('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None))
 	progressBarHeight = 15
 
-	class Handler(logging.StreamHandler):
+	class Handler(logging.StreamHandler): #need this to compensate for not being in main thread
 		def __init__(self):
 			logging.StreamHandler.__init__(self)
 
@@ -374,10 +388,6 @@ def guiMain():
 	global dbConn #this is so cleanup can happen in the case of a crash
 	global playlistConnected
 	playlistConnected = False
-
-	global totalRemoteItems
-	global remotePlaylistCounts
-	global correspondingRemotePlaylists
 
 	log = logging.Logger('main')
 	log.addHandler(logHandler)
@@ -568,24 +578,56 @@ def guiMain():
 		
 		elif event == 'Update Playlist':
 			log.debug('got request to update playlist')
+			if not playlistConnected:
+				log.warning('can\'t update a playlist that isn\'t connected')
+				continue
+
+			window.start_thread(lambda: update(str(dbPath), window, dbPath.parent, ffmpegPath), 'updateReturned') #forgot to make this start a thread at first
 		
 		elif event == 'progressUpdate':
 			data = values['progressUpdate']
+			log.debug(f'received progress update {data}')
 			operation = data[0]
 			value = data[1: ]
+			log.debug(type(value))
 			if operation == 'overall progress':
+				log.debug(f'received overall progress update {value}')
 				window['overallProgress'].update(value)
 			elif operation == 'starting':
+				log.debug('received download starting message')
 				window['downloadInactiveIndicator'].update(visible=False)
 				window['downloadStartingIndicator'].update(visible=True)
 			elif operation == 'started':
+				log.debug(f'received download startup message with data {value}')
 				window['downloadStartingIndicator'].update(visible=False)
 				window['overallProgress'].update(visible=True, current_count=0, max=value)
 				window['overallProgressCounter'].update(visible=True)
-				totalRemoteItems: int = value
+				totalRemoteItems: int = 0
+				totalRemoteItems = value
 			elif operation == 'playlist totals':
-				remotePlaylistCounts: list = value[0]
-				correspondingRemotePlaylists:list = value[1]
+				log.debug(f'received playlist totals {value}')
+				remotePlaylistTotals: list = value[0]
+				correspondingRemotePlaylists: list = value[1]
+				window['perPlaylistProgressSelector'].update(correspondingRemotePlaylists)
+			elif operation == 'increment playlist':
+				remotePlaylistCounts: list = []
+				log.debug(f'incrementing playlist {value}')
+				remotePlaylistCounts[correspondingRemotePlaylists.index(value)] += 1
+			elif operation == 'download size':
+				log.debug(f'download size should be {value}')
+				window['trackProgress'].update(current_count=0, max=value)
+			elif operation == 'download progress':
+				log.debug(f'got download progress update {value}')
+				window['trackProgress'].update(value)
+			else:
+				log.debug(f"got the unknown update parameter operation {operation}. This might be used later")
+		
+		elif event == 'perPlaylistProgressSelector':
+			log.debug(f'progress selector selected {value}')
+			window['perPlaylistProgress'].update(current_count=remotePlaylistCounts[correspondingRemotePlaylists.index(value)], max=remotePlaylistTotals[correspondingRemotePlaylists.index(value)])
+		
+		elif event == 'updateReturned':
+			log.debug('update function returned successfully')
 
 
 
