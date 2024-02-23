@@ -5,11 +5,11 @@ import logging.handlers
 import argparse
 from pathlib import Path
 import sqlite3
-import tqdm
 from yt_dlp.utils import format_bytes
 from time import sleep #I hate that I have to do this
 import platform
 import PySimpleGUI as sg
+import threading
 
 from core import DescriptionParser, dl, db, config
 from core.type import parserInput_t, metadata_t
@@ -59,6 +59,7 @@ def trackProgressHook(window: sg.Window, progress):
 
 	# Update the overall progress bar with appropriate units
 	log = logging.getLogger('trackProgressHook')
+	log.debug(f'progress hook {progress}')
 	if progress['status'] == 'downloading':
 		window.write_event_value('progressUpdate', tuple(['download progress', progress['downloaded_bytes']]))
 	elif progress['status'] == 'error' and 'message' in progress:
@@ -80,7 +81,7 @@ def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: 
 
 	connection = db.connect(dbPath)
 	log.debug('got another db connection just for this thread')
-	window.write_event_value('progressUpdate', ['starting', 1])
+	window.write_event_value('progressUpdate', tuple(['starting', 1]))
 	
 	existing = db.getAllDownloadedTracks(connection)
 	playlistIDs = db.getPlaylists(connection)
@@ -140,6 +141,7 @@ def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: 
 	
 	for iteration, track in enumerate(todo): #track[0] is the id, track[1] is the playlists
 		window.write_event_value('progressUpdate', tuple(['overall progress', iteration]))
+		#return
 		parserInput: parserInput_t = parserInput_t(None, None, None, None)#collect parser input data
 		parserInput.id = track[0]
 		parserInput.uploader, parserInput.title, parserInput.description, filesizeEstimate = dl.getDescription(track[0])
@@ -170,6 +172,7 @@ def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: 
 			successes = 0
 			success = False
 			while not success:
+				log.debug(f'sending filesize estimate "{filesizeEstimate}" type {type(filesizeEstimate)}')
 				window.write_event_value('progressUpdate', tuple(['download size', filesizeEstimate]))
 				progressHook = [lambda data: trackProgressHook(window, data)]
 				log.debug('starting download')
@@ -281,11 +284,13 @@ global totalRemoteItems
 global remotePlaylistTotals
 global correspondingRemotePlaylists
 global remotePlaylistCounts
+global currentlyUpdating
 
 def guiMain():
 	settings = sg.UserSettings(path='.', use_config_file=True, convert_bools_and_none=True)
 	ffmpegPath: str = settings['config'].get('ffmpegPath', ('ffmpeg/ffmpeg.exe' if platform.system() == "Windows" and Path("ffmpeg/ffmpeg.exe").is_file() else None))
 	progressBarHeight = 15
+	currentlyUpdating: bool = False
 
 	class Handler(logging.StreamHandler): #need this to compensate for not being in main thread
 		def __init__(self):
@@ -295,8 +300,13 @@ def guiMain():
 			global buffer
 			record = f'{record.levelname}:{record.name}:{record.msg}'
 			print(record)
-			buffer = f'{buffer}\n{str(record)}'.strip()
-			window['log'].update(value=buffer)
+			threadName = threading.current_thread().name
+			#print(threadName)
+			if threadName == 'MainThread':
+				buffer = f'{buffer}\n{str(record)}'.strip()
+				window['log'].update(value=buffer)
+			else:
+				window.write_event_value('refresh log', str(record))
 
 	logHandler = Handler()
 	logHandler.setLevel(settings['config'].get('logLevel', defaultLogLevel))
@@ -317,7 +327,8 @@ def guiMain():
 		[sg.Text('Next, select a local playlist in the playlist tab. If you don\'t have one, select the folder you want it in.')],
 		[sg.Text('You may also optionally select "Remember Playlist" to have it already selected at startup,')],
 		[sg.Text('and if you do that you can also select the "Automatically connect playlist on startup" checkbox.')],
-		[sg.Text('Now add some YouTube playlists by putting their link or ID into the box and hitting "Add to Local"')]
+		[sg.Text('Now add some YouTube playlists by putting their link or ID into the box and hitting "Add to Local"')],
+		[sg.Text('Simply press the Update button in the Update tab to download all your playlists')]
 	]
 	
 	updateTab = [
@@ -408,6 +419,15 @@ def guiMain():
 		# See if user wants to quit or window was closed
 		if event == sg.WINDOW_CLOSED or event == 'Quit':
 			break
+		
+		elif event == 'refresh log':
+			print('remote logging')
+			global buffer
+			buffer = f'{buffer}\n{values["refresh log"]}'.strip()
+			print('updated buffer')
+			window['log'].update(value=buffer)
+			#print('updated window')
+		
 		elif event == 'Connect Playlist': #Connect Playlist button got pressed
 			log.info('playlist connection requested')
 			window['playlistConnectionStatus'].update('Connecting', background_color='#FFA500')
@@ -583,17 +603,25 @@ def guiMain():
 				log.warning('can\'t update a playlist that isn\'t connected')
 				continue
 
-			window.start_thread(lambda: update(str(dbPath), window, dbPath.parent, ffmpegPath), 'updateReturned') #forgot to make this start a thread at first
+			if not currentlyUpdating: 
+				window.start_thread(lambda: update(str(dbPath), window, dbPath.parent, ffmpegPath), 'updateReturned') #forgot to make this start a thread at first
+				currentlyUpdating = True
+			else: log.warning('already updating')
 		
 		elif event == 'progressUpdate':
+			print('progress update')
+			print(threading.current_thread().name)
 			data = values['progressUpdate']
-			log.debug(f'received progress update {data}')
 			operation = data[0]
 			value = data[1: ]
-			log.debug(type(value))
+			if len(value) == 1: value = value[0]
+			log.debug(f'received progress update "{operation}" with value "{value}"')
+			#log.debug(type(value))
 			if operation == 'overall progress':
 				log.debug(f'received overall progress update {value}')
 				window['overallProgress'].update(value)
+				window['overallProgressCounter'].update(f'{value}/{totalRemoteItems}')
+				window.write_event_value('perPlaylistProgressSelector', values['perPlaylistProgressSelector'])
 			elif operation == 'starting':
 				log.debug('received download starting message')
 				window['downloadInactiveIndicator'].update(visible=False)
@@ -609,26 +637,36 @@ def guiMain():
 				log.debug(f'received playlist totals {value}')
 				remotePlaylistTotals: list = value[0]
 				correspondingRemotePlaylists: list = value[1]
-				window['perPlaylistProgressSelector'].update(correspondingRemotePlaylists)
+				remotePlaylistCounts = [0 for i in range(len(correspondingRemotePlaylists))]
+				window['perPlaylistProgressSelector'].update(values=correspondingRemotePlaylists)
 			elif operation == 'increment playlist':
 				remotePlaylistCounts: list = []
 				log.debug(f'incrementing playlist {value}')
 				remotePlaylistCounts[correspondingRemotePlaylists.index(value)] += 1
 			elif operation == 'download size':
-				log.debug(f'download size should be {value}')
-				window['trackProgress'].update(current_count=0, max=value)
+				log.debug(f'download size should be {str(value)}')
+				window['trackProgress'].update(current_count=0, max=int(value))
 			elif operation == 'download progress':
 				log.debug(f'got download progress update {value}')
 				window['trackProgress'].update(value)
 			else:
 				log.debug(f"got the unknown update parameter operation {operation}. This might be used later")
+			
+			window.refresh()
 		
 		elif event == 'perPlaylistProgressSelector':
+			value = values['perPlaylistProgressSelector']
+			if value in ['', 0, None]: continue
 			log.debug(f'progress selector selected {value}')
+			#log.debug(f'playlist counts: {remotePlaylistCounts}')
+			#log.debug(f'playlist totals: {remotePlaylistTotals}')
+			#log.debug(f'corresponding playlists: {correspondingRemotePlaylists}')
+			window['perPlaylistProgressCounter'].update(f'{remotePlaylistCounts[correspondingRemotePlaylists.index(value)]}/{remotePlaylistTotals[correspondingRemotePlaylists.index(value)]}')
 			window['perPlaylistProgress'].update(current_count=remotePlaylistCounts[correspondingRemotePlaylists.index(value)], max=remotePlaylistTotals[correspondingRemotePlaylists.index(value)])
 		
 		elif event == 'updateReturned':
 			log.debug('update function returned successfully')
+			currentlyUpdating = False
 
 
 
