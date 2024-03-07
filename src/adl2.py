@@ -59,7 +59,7 @@ def trackProgressHook(window: sg.Window, progress):
 
 	# Update the overall progress bar with appropriate units
 	log = logging.getLogger('trackProgressHook')
-	log.debug(f'progress hook {progress}')
+	#log.debug(f'progress hook {progress}')
 	if progress['status'] == 'downloading':
 		window.write_event_value('progressUpdate', tuple(['download progress', progress['downloaded_bytes']]))
 	elif progress['status'] == 'error' and 'message' in progress:
@@ -68,6 +68,8 @@ def trackProgressHook(window: sg.Window, progress):
 			currentRateLimit = currentRateLimit - decreaseLimitBy
 			if currentRateLimit < 4:
 				currentRateLimit = 4
+
+thingtodosomethingwith = {'speed': 3581766.57855262, '_speed_str': '\x1b[0;32m3.42MiB/s\x1b[0m', '_total_bytes_str': '   4.40MiB', '_elapsed_str': '\x1b[1;37m00:00:01\x1b[0m', '_percent_str': '\x1b[0;94m100.0%\x1b[0m', '_default_template': '100% of    4.40MiB in \x1b[1;37m00:00:01\x1b[0m at \x1b[0;32m3.42MiB/s\x1b[0m'}
 
 def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: str = None):
 	log = logging.getLogger('update')
@@ -167,6 +169,9 @@ def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: 
 				window.write_event_value('progressUpdate', tuple(['parser misses', parserMisses]))
 
 			filenameTitle = dl.filenameCleaner(parserInput.title)
+			#trackName = filenameTitle #metadata.title
+			if config.getConfig(connection, 'useMetadataTitle') == 'no':
+				metadata.title = filenameTitle
 
 			attempts = 0
 			successes = 0
@@ -174,9 +179,10 @@ def update(dbPath: str, window: sg.Window, playlistDirectory: Path, ffmpegPath: 
 			while not success:
 				log.debug(f'sending filesize estimate "{filesizeEstimate}" type {type(filesizeEstimate)}')
 				window.write_event_value('progressUpdate', tuple(['download size', filesizeEstimate]))
+				window.write_event_value('progressUpdate', tuple(['track name', metadata.title]))
 				progressHook = [lambda data: trackProgressHook(window, data)]
 				log.debug('starting download')
-				success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == '0' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook, ffmpegPath) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
+				success = dl.getTrack(parserInput.id, metadata, False if config.getConfig(connection, 'useMetadataTitle') == 'no' else True, playlistDirectory, filenameTitle, f'{currentRateLimit}M', progressHook, ffmpegPath) #mom, can we have short function call? No, we have short function call at home. Short funtion call at home:
 
 				if rateLimited:
 					log.debug(f"got rate limited, after delay the new target will be {currentRateLimit}M")
@@ -306,7 +312,9 @@ def guiMain():
 				buffer = f'{buffer}\n{str(record)}'.strip()
 				window['log'].update(value=buffer)
 			else:
-				window.write_event_value('refresh log', str(record))
+				buffer = f'{buffer}\n{str(record)}'.strip()
+				#window.write_event_value('refresh log', str(record))
+				pass
 
 	logHandler = Handler()
 	logHandler.setLevel(settings['config'].get('logLevel', defaultLogLevel))
@@ -609,8 +617,8 @@ def guiMain():
 			else: log.warning('already updating')
 		
 		elif event == 'progressUpdate':
-			print('progress update')
-			print(threading.current_thread().name)
+			#print('progress update')
+			#print(threading.current_thread().name)
 			data = values['progressUpdate']
 			operation = data[0]
 			value = data[1: ]
@@ -622,6 +630,7 @@ def guiMain():
 				window['overallProgress'].update(value)
 				window['overallProgressCounter'].update(f'{value}/{totalRemoteItems}')
 				window.write_event_value('perPlaylistProgressSelector', values['perPlaylistProgressSelector'])
+				window.write_event_value('Refresh', True)
 			elif operation == 'starting':
 				log.debug('received download starting message')
 				window['downloadInactiveIndicator'].update(visible=False)
@@ -637,15 +646,18 @@ def guiMain():
 				log.debug(f'received playlist totals {value}')
 				remotePlaylistTotals: list = value[0]
 				correspondingRemotePlaylists: list = value[1]
-				remotePlaylistCounts = [0 for i in range(len(correspondingRemotePlaylists))]
+				remotePlaylistCounts: list = [0 for i in range(len(correspondingRemotePlaylists) + 1)]
 				window['perPlaylistProgressSelector'].update(values=correspondingRemotePlaylists)
 			elif operation == 'increment playlist':
-				remotePlaylistCounts: list = []
+				#remotePlaylistCounts: list = []
 				log.debug(f'incrementing playlist {value}')
 				remotePlaylistCounts[correspondingRemotePlaylists.index(value)] += 1
 			elif operation == 'download size':
 				log.debug(f'download size should be {str(value)}')
 				window['trackProgress'].update(current_count=0, max=int(value))
+			elif operation == 'track name':
+				log.debug(f'track name is {value}')
+				window['currentDownloadTrack'].update(value)
 			elif operation == 'download progress':
 				log.debug(f'got download progress update {value}')
 				window['trackProgress'].update(value)
@@ -667,6 +679,9 @@ def guiMain():
 		elif event == 'updateReturned':
 			log.debug('update function returned successfully')
 			currentlyUpdating = False
+			window['currentDownloadTrack'].update('Download Complete!')
+			window['downloadInactiveIndicator'].update(visible=True)
+			window['downloadStartingIndicator'].update(visible=False)
 
 
 
