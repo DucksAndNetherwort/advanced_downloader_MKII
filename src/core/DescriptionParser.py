@@ -47,5 +47,6 @@ def parse(input: parserInput_t) -> metadata_t:
         output = parsers['generic'](input)
     output.uploader = input.uploader
     if len(output.genre.split('=')) > 1 and 'youtube.com' in output.genre: #let's try to sort out those pesky "playlist as genre name" things
-        getPlaylistInfo(output.genre.split('=')[1].strip()).get('title', 'bad playlist')
+        pass #this will need a little more work to make sure the links are good
+        #getPlaylistInfo(output.genre.split('=')[1].strip()).get('title', 'bad playlist')
     return(output)
